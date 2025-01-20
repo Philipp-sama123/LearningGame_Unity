@@ -63,6 +63,8 @@ namespace KrazyKatGames
                 {
                     isAttacking = false; // Ready to attack again
                 }
+
+                DetectPlayerInAttackRadius(); // Check for player in attack radius while attacking
             }
         }
 
@@ -102,6 +104,22 @@ namespace KrazyKatGames
 
             // Here you could add damage logic, such as calling a method on the player's health script
             Debug.Log("Zombie attacks the player!");
+        }
+
+        private void DetectPlayerInAttackRadius()
+        {
+            // Check if the player is still within the attack range during the attack
+            float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
+            if (distanceToPlayer <= attackRange)
+            {
+                Debug.Log("Player is within attack radius during the attack.");
+
+                // Additional logic for applying damage to the player could be added here
+            }
+            else
+            {
+                Debug.Log("Player moved out of attack radius.");
+            }
         }
 
         private void OnDrawGizmosSelected()
