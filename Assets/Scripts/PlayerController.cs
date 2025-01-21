@@ -6,8 +6,12 @@ namespace KrazyKatGames
     public class PlayerController : MonoBehaviour
     {
         [Header("Movement Settings")]
-        public float forwardSpeed = 1f; // Speed when typing forward
-        public float backwardSpeed = 0.5f; // Speed when deleting characters
+        public float forwardSpeed = 4f; // Speed when typing forward
+        public float backwardSpeed = 1f; // Speed when deleting characters
+
+        [Header("Force Settings")]
+        public Vector2 pushSingleForce = new(1f, 0f);
+        public Vector2 pushDoubleForce = new(2f, 0f);
 
         private Rigidbody2D playerRigidbody; // Reference to the Rigidbody2D
         private Animator playerAnimator; // Reference to the Animator
@@ -26,31 +30,34 @@ namespace KrazyKatGames
             }
         }
 
-        private void Update()
-        {
-            // We calculate and store the current speed from TypingSpeedController
-            // This ensures the typing controller updates the currentSpeed, 
-            // and player movement is handled in LateUpdate for Rigidbody
-        }
-
         private void LateUpdate()
         {
-            // After all updates, apply the movement in LateUpdate
+            // Apply movement to Rigidbody in LateUpdate
             if (playerRigidbody != null)
             {
-                // Apply the current speed to the Rigidbody in LateUpdate
-                Vector2 velocity = new Vector2(currentSpeed, playerRigidbody.velocity.y);
-                playerRigidbody.velocity = velocity;
+                Vector2 targetVelocity;
+
+                // If no force is being applied, we want to maintain a constant speed
+                if (!isPerformingAction)
+                {
+                    targetVelocity = new Vector2(currentSpeed, playerRigidbody.velocity.y);
+                }
+                else
+                {
+                    // If a force is applied, we preserve the existing velocity but apply the force's influence
+                    targetVelocity = new Vector2(playerRigidbody.velocity.x, playerRigidbody.velocity.y);
+                }
+
+                // Apply the target velocity
+                playerRigidbody.velocity = targetVelocity;
             }
         }
 
-        // Update the player's movement speed (called by TypingSpeedController)
         public void UpdateMovement(float moveSpeed)
         {
             currentSpeed = moveSpeed;
         }
 
-        // Update the animator blend value for the blend tree
         public void UpdateAnimatorBlend(float blendValue)
         {
             if (playerAnimator != null)
@@ -59,16 +66,38 @@ namespace KrazyKatGames
             }
         }
 
-        // Play alternating acceleration animations
-        public void PlayAccelerationAnimation(bool isForward)
+        // Play animation for whitespace
+        public void PlayWhitespaceAnimation()
         {
             if (isPerformingAction) return;
+
             if (playerAnimator != null)
             {
                 isPerformingAction = true;
-                string animationName = playAlternateAnimation ? "Skater_Girl_PushSingle" : "Skater_Girl_PushDouble";
-                playAlternateAnimation = !playAlternateAnimation;
-                playerAnimator.CrossFade(animationName, 0.1f);
+
+                playerAnimator.CrossFade("Skater_Girl_PushSingle", 0.1f);
+                ApplyForceImpulse(pushSingleForce);
+            }
+        }
+
+        // Play animation for end of sentence
+        public void PlayEndOfSentenceAnimation()
+        {
+            if (isPerformingAction) return;
+
+            if (playerAnimator != null)
+            {
+                isPerformingAction = true;
+
+                playerAnimator.CrossFade("Skater_Girl_PushDouble", 0.1f);
+                ApplyForceImpulse(pushDoubleForce);
+            }
+        }
+        public void ApplyForceImpulse(Vector2 impulse, ForceMode2D mode = ForceMode2D.Impulse)
+        {
+            if (playerRigidbody != null)
+            {
+                playerRigidbody.AddForce(impulse, mode);
             }
         }
     }

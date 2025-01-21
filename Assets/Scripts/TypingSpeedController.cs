@@ -8,12 +8,11 @@ namespace KrazyKatGames
         public TMP_InputField typingInputField; // Assign your TextMeshPro InputField in the Inspector
         public PlayerController playerController; // Reference to the PlayerController script
         public float stopDelay = 2.5f; // Time to stop moving after typing stops
-        public float typingSpeedThreshold = 2f; // Typing speed threshold for fast mode
+        public float typingSpeedThreshold = .1f; // Typing speed threshold for fast mode
 
         private float lastInputTime; // Time when the last input occurred
         private int previousCharacterCount; // Character count in the InputField last frame
         private float typingSpeed; // Current typing speed
-
         private void Start()
         {
             lastInputTime = Time.time;
@@ -36,8 +35,9 @@ namespace KrazyKatGames
             if (typingInputField == null || playerController == null)
                 return;
 
-            // Get the current character count
+            // Get the current character count and text
             int currentCharacterCount = typingInputField.text.Length;
+            string currentText = typingInputField.text;
 
             if (currentCharacterCount != previousCharacterCount)
             {
@@ -57,8 +57,19 @@ namespace KrazyKatGames
                 float blendValue = typingSpeed >= typingSpeedThreshold ? 2f : 1f;
                 playerController.UpdateAnimatorBlend(blendValue);
 
-                // Trigger animation alternation for acceleration
-                playerController.PlayAccelerationAnimation(isTypingForward);
+                // Trigger animation alternation for acceleration based on input type
+                char lastTypedChar = currentText.Length > 0 ? currentText[currentText.Length - 1] : '\0';
+
+                if (char.IsWhiteSpace(lastTypedChar))
+                {
+                    // Trigger PushSingle animation on whitespace
+                    playerController.PlayWhitespaceAnimation();
+                }
+                else if (IsEndOfSentence(lastTypedChar))
+                {
+                    // Trigger PushDouble animation at the end of a sentence
+                    playerController.PlayEndOfSentenceAnimation();
+                }
             }
             else if (Time.time - lastInputTime > stopDelay)
             {
@@ -69,6 +80,12 @@ namespace KrazyKatGames
 
             // Update the previous character count
             previousCharacterCount = currentCharacterCount;
+        }
+
+        // Utility method to detect sentence-ending characters
+        private bool IsEndOfSentence(char c)
+        {
+            return c == '.' || c == '?' || c == '!';
         }
     }
 }
