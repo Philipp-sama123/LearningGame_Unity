@@ -43,7 +43,7 @@ namespace KrazyKatGames
                 }
 
                 // Ensure zombie stops completely while attacking
-                zombieRigidbody.velocity = Vector2.zero;
+                zombieRigidbody.linearVelocity = Vector2.zero;
                 if (zombieAnimator != null)
                 {
                     zombieAnimator.SetFloat("Speed", 0f);
@@ -74,7 +74,7 @@ namespace KrazyKatGames
 
             Vector2 direction = (playerTransform.position - transform.position).normalized;
             Vector2 newVelocity = direction * moveSpeed;
-            zombieRigidbody.velocity = new Vector2(newVelocity.x, zombieRigidbody.velocity.y);
+            zombieRigidbody.linearVelocity = new Vector2(newVelocity.x, zombieRigidbody.linearVelocity.y);
 
             // Update the animator with movement speed
             if (zombieAnimator != null)
@@ -94,7 +94,7 @@ namespace KrazyKatGames
             isAttacking = true;
             attackTimer = attackCooldown;
 
-            zombieRigidbody.velocity = Vector2.zero; // Stop moving while attacking
+            zombieRigidbody.linearVelocity = Vector2.zero; // Stop moving while attacking
 
             // Crossfade the attack animation from an override layer
             if (zombieAnimator != null)

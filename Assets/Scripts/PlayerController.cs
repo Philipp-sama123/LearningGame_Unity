@@ -10,8 +10,9 @@ namespace KrazyKatGames
         public float backwardSpeed = 1f; // Speed when deleting characters
 
         [Header("Force Settings")]
-        public Vector2 pushSingleForce = new(1f, 0f);
-        public Vector2 pushDoubleForce = new(2f, 0f);
+        public Vector2 pushSingleForce = new(3f, 0f);
+        public Vector2 pushDoubleForce = new(5f, 0f);
+        public Vector2 pushAnimationForce = new(3f, 0f);
 
         private Rigidbody2D playerRigidbody; // Reference to the Rigidbody2D
         private Animator playerAnimator; // Reference to the Animator
@@ -40,16 +41,16 @@ namespace KrazyKatGames
                 // If no force is being applied, we want to maintain a constant speed
                 if (!isPerformingAction)
                 {
-                    targetVelocity = new Vector2(currentSpeed, playerRigidbody.velocity.y);
+                    targetVelocity = new Vector2(currentSpeed, playerRigidbody.linearVelocity.y);
                 }
                 else
                 {
                     // If a force is applied, we preserve the existing velocity but apply the force's influence
-                    targetVelocity = new Vector2(playerRigidbody.velocity.x, playerRigidbody.velocity.y);
+                    targetVelocity = new Vector2(playerRigidbody.linearVelocity.x, playerRigidbody.linearVelocity.y);
                 }
 
                 // Apply the target velocity
-                playerRigidbody.velocity = targetVelocity;
+                playerRigidbody.linearVelocity = targetVelocity;
             }
         }
 
@@ -98,6 +99,13 @@ namespace KrazyKatGames
             if (playerRigidbody != null)
             {
                 playerRigidbody.AddForce(impulse, mode);
+            }
+        }
+        public void ApplyAnimationImpulse()
+        {
+            if (playerRigidbody != null)
+            {
+                playerRigidbody.AddForce(pushAnimationForce, ForceMode2D.Impulse);
             }
         }
     }
