@@ -9,13 +9,16 @@ namespace KrazyKatGames
         public float moveSpeed = 1f; // Speed at which the zombie moves
         public float attackRange = 1f; // Range at which the zombie attacks the player
         public float attackCooldown = 1.5f; // Time between attacks
+        public float damage = 10f;
 
-        private Rigidbody2D zombieRigidbody; // Reference to the Rigidbody2D
-        private Animator zombieAnimator; // Reference to the Animator
-        [SerializeField] private Transform playerTransform; // Reference to the player's Transform (assigned in Inspector)
+        private Rigidbody2D zombieRigidbody;
+        private Animator zombieAnimator;
+        [SerializeField] private Transform playerTransform;
+        [SerializeField] private PlayerController player;
 
-        private bool isAttacking; // True if the zombie is attacking
-        private float attackTimer; // Tracks time since last attack
+        private bool isAttacking;
+        private float attackTimer;
+        private bool alreadyDamaged; // Ensures damage is applied only once per attack
 
         private void Awake()
         {
@@ -36,14 +39,13 @@ namespace KrazyKatGames
 
             if (distanceToPlayer <= attackRange)
             {
-                // Attack the player if in range
                 if (!isAttacking)
                 {
                     AttackPlayer();
                 }
 
-                // Ensure zombie stops completely while attacking
                 zombieRigidbody.linearVelocity = Vector2.zero;
+
                 if (zombieAnimator != null)
                 {
                     zombieAnimator.SetFloat("Speed", 0f);
@@ -51,39 +53,34 @@ namespace KrazyKatGames
             }
             else
             {
-                // Move toward the player if not in range
                 MoveTowardPlayer();
             }
 
-            // Update the attack timer
             if (isAttacking)
             {
                 attackTimer -= Time.deltaTime;
                 if (attackTimer <= 0)
                 {
-                    isAttacking = false; // Ready to attack again
+                    isAttacking = false;
+                    alreadyDamaged = false; // Reset the damage flag for the next attack
                 }
-
-                DetectPlayerInAttackRadius(); // Check for player in attack radius while attacking
             }
         }
 
         private void MoveTowardPlayer()
         {
-            if (isAttacking) return; // Don't move if attacking
+            if (isAttacking) return;
 
             Vector2 direction = (playerTransform.position - transform.position).normalized;
             Vector2 newVelocity = direction * moveSpeed;
             zombieRigidbody.linearVelocity = new Vector2(newVelocity.x, zombieRigidbody.linearVelocity.y);
 
-            // Update the animator with movement speed
             if (zombieAnimator != null)
             {
                 zombieAnimator.SetFloat("Speed", Mathf.Abs(newVelocity.magnitude));
             }
 
-            // Flip the zombie to face the player
-            if (direction.x > 0 && transform.localScale.x < 0 || direction.x < 0 && transform.localScale.x > 0)
+            if ((direction.x > 0 && transform.localScale.x < 0) || (direction.x < 0 && transform.localScale.x > 0))
             {
                 transform.localScale = new Vector3(-transform.localScale.x, transform.localScale.y, transform.localScale.z);
             }
@@ -94,37 +91,38 @@ namespace KrazyKatGames
             isAttacking = true;
             attackTimer = attackCooldown;
 
-            zombieRigidbody.linearVelocity = Vector2.zero; // Stop moving while attacking
+            zombieRigidbody.linearVelocity = Vector2.zero;
 
-            // Crossfade the attack animation from an override layer
             if (zombieAnimator != null)
             {
-                zombieAnimator.CrossFade("Zombie_Attack_A", 0.1f, 1); // Layer 1 is used for the override layer
+                zombieAnimator.CrossFade("Zombie_Attack_A", 0.1f, 1); // Trigger attack animation on layer 1
             }
 
-            // Here you could add damage logic, such as calling a method on the player's health script
-            Debug.Log("Zombie attacks the player!");
+            alreadyDamaged = false; // Reset the damage flag when starting a new attack
         }
 
         private void DetectPlayerInAttackRadius()
         {
-            // Check if the player is still within the attack range during the attack
             float distanceToPlayer = Vector2.Distance(transform.position, playerTransform.position);
-            if (distanceToPlayer <= attackRange)
+            if (distanceToPlayer <= attackRange && !alreadyDamaged)
             {
-                Debug.Log("Player is within attack radius during the attack.");
-
-                // Additional logic for applying damage to the player could be added here
+                alreadyDamaged = true; // Damage the player only once during the attack
+                player.TakeDamage(damage);
+                Debug.Log("Zombie damaged the player.");
             }
-            else
+        }
+
+        // Called during the attack animation via Animation Event
+        private void ApplyDamage()
+        {
+            if (!alreadyDamaged)
             {
-                Debug.Log("Player moved out of attack radius.");
+                DetectPlayerInAttackRadius();
             }
         }
 
         private void OnDrawGizmosSelected()
         {
-            // Draw the attack range as a red wire sphere
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(transform.position, attackRange);
         }

@@ -7,12 +7,15 @@ namespace KrazyKatGames
     {
         public TMP_InputField typingInputField; // Assign your TextMeshPro InputField in the Inspector
         public PlayerController playerController; // Reference to the PlayerController script
+        public UnityReactBridge unityReactBridge;
         public float stopDelay = 2.5f; // Time to stop moving after typing stops
         public float typingSpeedThreshold = .1f; // Typing speed threshold for fast mode
 
         private float lastInputTime; // Time when the last input occurred
         private int previousCharacterCount; // Character count in the InputField last frame
         private float typingSpeed; // Current typing speed
+        private bool wasStopped = true;
+
         private void Start()
         {
             lastInputTime = Time.time;
@@ -35,56 +38,60 @@ namespace KrazyKatGames
             if (typingInputField == null || playerController == null)
                 return;
 
-            // Get the current character count and text
             int currentCharacterCount = typingInputField.text.Length;
             string currentText = typingInputField.text;
 
-            if (currentCharacterCount != previousCharacterCount)
+            if (currentCharacterCount != previousCharacterCount) // Typing detected
             {
-                // Calculate typing speed based on the interval between inputs
+                if (wasStopped)
+                {
+                    playerController.PlayEndOfSentenceAnimation(); // Play animation when typing resumes
+                    wasStopped = false; // Reset the flag
+                }
+
                 float timeSinceLastChar = Time.time - lastInputTime;
                 lastInputTime = Time.time;
                 typingSpeed = timeSinceLastChar > 0 ? 1f / timeSinceLastChar : 0f;
 
-                // Determine typing direction
                 bool isTypingForward = currentCharacterCount > previousCharacterCount;
-
-                // Notify the PlayerController about the movement and typing speed
                 float moveSpeed = isTypingForward ? playerController.forwardSpeed : -playerController.backwardSpeed;
                 playerController.UpdateMovement(moveSpeed);
 
-                // Determine blend value (1 for default, 2 for fast) and pass to PlayerController
                 float blendValue = typingSpeed >= typingSpeedThreshold ? 2f : 1f;
                 playerController.UpdateAnimatorBlend(blendValue);
 
-                // Trigger animation alternation for acceleration based on input type
                 char lastTypedChar = currentText.Length > 0 ? currentText[currentText.Length - 1] : '\0';
 
-                if (char.IsWhiteSpace(lastTypedChar))
+                if (isTypingForward)
                 {
-                    // Trigger PushSingle animation on whitespace
-                    playerController.PlayWhitespaceAnimation();
-                }
-                else if (IsEndOfSentence(lastTypedChar))
-                {
-                    // Trigger PushDouble animation at the end of a sentence
-                    playerController.PlayEndOfSentenceAnimation();
+                    if (char.IsWhiteSpace(lastTypedChar))
+                    {
+                        playerController.PlayWhitespaceAnimation();
+                    }
+                    else if (IsEndOfSentence(lastTypedChar))
+                    {
+                        playerController.PlayEndOfSentenceAnimation();
+                    }
                 }
             }
             else if (Time.time - lastInputTime > stopDelay)
             {
-                // Stop movement if typing stops for the delay duration
-                playerController.UpdateMovement(0f);
-                playerController.UpdateAnimatorBlend(0f);
+                if (!wasStopped)
+                {
+                    Debug.LogWarning("ERROR - going back!");
+                    playerController.UpdateMovement(0f);
+                    playerController.UpdateAnimatorBlend(0f);
+                    wasStopped = true; // Mark as stopped
+                }
             }
 
-            // Update the previous character count
             previousCharacterCount = currentCharacterCount;
         }
 
         // Utility method to detect sentence-ending characters
         private bool IsEndOfSentence(char c)
         {
+            unityReactBridge.SendToReact(typingInputField.text);
             return c == '.' || c == '?' || c == '!';
         }
     }
